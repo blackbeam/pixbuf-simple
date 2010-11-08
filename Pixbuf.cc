@@ -81,7 +81,6 @@ namespace node {
 	GError *err = NULL;
 	gchar **keys = NULL;
 	gchar **values = NULL;
-	GSList *keylist = NULL, *vallist = NULL;
 	int keyn = 0;
 
 	if (args.Length() < 1)
@@ -123,6 +122,13 @@ namespace node {
 	    isOk = gdk_pixbuf_save_to_buffer(src->getPixbuf(), &buf, &bufsize, *typestr, &err, NULL);
 	}
 
+	for ( int i = 0; i < keyn+1; i++ ) {
+	    free( keys[i] );
+	    free( values[i] );
+	}
+	if ( keys != NULL ) free( keys );
+	if ( values != NULL ) free( values );
+		
 	if (!isOk) {
 	    return ThrowException(Exception::Error(String::New(err->message)));
 	}
