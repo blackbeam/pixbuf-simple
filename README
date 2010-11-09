@@ -1,0 +1,16 @@
+Simple synchronous javascript interface to gdk-pixbuf 2.0
+
+To build:
+
+  node-waf configure
+  node-waf build
+
+To try:
+
+  // Create a new pixbuf (has_alpha, width, height)
+  var pb = new Pixbuf(false, 2, 2);
+  // Set or get some pixels
+  var upperLeftPixel = pb[0];
+  pb[3] = {r: 0, g: 255, b: 0};
+  // Render pixbuf to image buffer
+  var imageBuffer = pb.toImage('png',{compression: '3'});
