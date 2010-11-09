@@ -150,16 +150,15 @@ namespace node {
 	gboolean isOk = true;
 	if (keys != NULL) {
 	    isOk = gdk_pixbuf_save_to_bufferv(src->getPixbuf(), &buf, &bufsize, *typestr, keys, values, &err);
+	    for ( int i = 0; i < keyn+1; i++ ) {
+    		free( keys[i] );
+    		free( values[i] );
+    	    }
+    	    if ( keys != NULL ) free( keys );
+    	    if ( values != NULL ) free( values );
 	} else {
 	    isOk = gdk_pixbuf_save_to_buffer(src->getPixbuf(), &buf, &bufsize, *typestr, &err, NULL);
 	}
-
-	for ( int i = 0; i < keyn+1; i++ ) {
-	    free( keys[i] );
-	    free( values[i] );
-	}
-	if ( keys != NULL ) free( keys );
-	if ( values != NULL ) free( values );
 		
 	if (!isOk) {
 	    return ThrowException(Exception::Error(String::New(err->message)));
