@@ -56,6 +56,7 @@ namespace node {
 
 	    Pixbuf(guchar * pixels, bool has_alpha, int width, int height) : ObjectWrap() {
 		int rowstride = has_alpha ? width * 4 : width * 3;
+		rowstride = (rowstride + 3) & ~3;
 		pixbuf = gdk_pixbuf_new_from_data(
 			pixels,
 			GDK_COLORSPACE_RGB,
