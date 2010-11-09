@@ -46,9 +46,23 @@ namespace node {
 	    static v8::Handle<v8::Boolean> checkPixel(uint32_t index, const v8::AccessorInfo &info);
 	    static v8::Handle<v8::Array> enumeratePixel(const v8::AccessorInfo &info);
 
-	    Pixbuf(GdkPixbuf *source) {
+	    Pixbuf(GdkPixbuf *source) : ObjectWrap() {
 		pixbuf = gdk_pixbuf_copy(source);
 		mylength = sizeof(GdkPixbuf*) + (gdk_pixbuf_get_width(pixbuf) * gdk_pixbuf_get_height(pixbuf) * gdk_pixbuf_get_n_channels(pixbuf));
+		v8::V8::AdjustAmountOfExternalAllocatedMemory(mylength);
+	    }
+
+	    Pixbuf(guchar * pixels, gboolean has_alpha, int width, int height) : ObjectWrap() {
+		int rowstride = has_alpha ? width*4*8 : width*3*8;
+		pixbuf = gdk_pixbuf_new_from_data(
+			pixels,
+			GDK_COLORSPACE_RGB,
+			has_alpha,
+			8,
+			width, height,
+			rowstride,
+			NULL, NULL);
+		mylength = sizeof(GdkPixbuf*) + (width * height * gdk_pixbuf_get_n_channels(pixbuf));
 		v8::V8::AdjustAmountOfExternalAllocatedMemory(mylength);
 	    }
 

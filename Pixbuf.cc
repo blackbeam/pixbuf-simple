@@ -22,17 +22,26 @@ namespace node {
     
     Handle<Value> Pixbuf::New(const Arguments &args) {
 	HandleScope scope;
+	Pixbuf *pb;
 
-	if(args.Length() != 3)
-	    return ThrowException(Exception::Error(String::New("Three arguments required (has_alpha: Boolean, width: Integer, height: Integer)")));
-	if(!args[0]->IsBoolean() || !args[1]->IsInt32() || !args[2]->IsInt32())
-	    return ThrowException(Exception::TypeError(String::New("Wrong type of arguments (has_alpha: Boolean, width: Integer, height: Integer)")));
-
-	bool has_alpha = args[0]->ToBoolean()->Value();
-	int width = args[1]->ToInt32()->Value();
-	int height = args[2]->ToInt32()->Value();
-
-	Pixbuf *pb = new Pixbuf(has_alpha, width, height);
+	/* new Pixbuf(pixels: Buffer, has_alpha: bool, width: Integer, height: Integer) */
+	if (args.Length() == 5 && Buffer::HasInstance(args[0]) && args[1]->IsBoolean() && args[2]->IsInt32() && args[3]->IsInt32() && args[4]->IsInt32()) {
+	    Buffer *bPixels = ObjectWrap::Unwrap<Buffer>(args[0]->ToObject());
+	    guchar *pixels = (guchar*) bPixels->data();
+	    bool has_alpha = args[1]->ToBoolean()->Value();
+    	    int width = args[2]->ToInt32()->Value();
+    	    int height = args[3]->ToInt32()->Value();
+	    pb = new Pixbuf(pixels, has_alpha, width, height);
+	}
+	/* new Pixbuf(has_alpha: bool, width: Integer, height: Integer) */
+	else if (args.Length() == 3 && args[0]->IsBoolean() && args[1]->IsInt32() && args[2]->IsInt32()) {
+	    bool has_alpha = args[0]->ToBoolean()->Value();
+    	    int width = args[1]->ToInt32()->Value();
+    	    int height = args[2]->ToInt32()->Value();
+	    pb = new Pixbuf(has_alpha, width, height);
+	} else {
+	    return ThrowException(Exception::TypeError(String::New("Wrong arguments.")));
+	}
 
 	pb->Wrap(args.This());
 	args.This()->Set(String::NewSymbol("length"), Uint32::New(pb->getWidth() * pb->getHeight()));
