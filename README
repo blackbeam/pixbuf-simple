@@ -13,4 +13,9 @@ To try:
   var upperLeftPixel = pb[0];
   pb[3] = {r: 0, g: 255, b: 0};
   // Render pixbuf to image buffer
-  var imageBuffer = pb.toImage('png',{compression: '3'});
+  var imageBuffer = pb.toImage('png',{compression: '9'});
+
+Additional info:
+
+  For list of supported image formats and options please refer to gdk-pixbuf 2.0 documentation.
+  Gdk-pixbuf has limited support of transparency.
