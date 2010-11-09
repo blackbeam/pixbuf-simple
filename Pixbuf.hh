@@ -49,13 +49,13 @@ namespace node {
 
 	    Pixbuf(GdkPixbuf *source) : ObjectWrap() {
 		pixbuf = gdk_pixbuf_copy(source);
-		pixbufLength = (gdk_pixbuf_get_width(pixbuf) * gdk_pixbuf_get_height(pixbuf) * gdk_pixbuf_get_n_channels(pixbuf));
+		pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
 		dataSize = sizeof(GdkPixbuf*) + pixbufLength;
 		v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);
 	    }
 
 	    Pixbuf(guchar * pixels, bool has_alpha, int width, int height) : ObjectWrap() {
-		int rowstride = has_alpha ? width*4*8 : width*3*8;
+		int rowstride = has_alpha ? width * 4 : width * 3;
 		pixbuf = gdk_pixbuf_new_from_data(
 			pixels,
 			GDK_COLORSPACE_RGB,
@@ -64,7 +64,7 @@ namespace node {
 			width, height,
 			rowstride,
 			NULL, NULL);
-		pixbufLength = (width * height * gdk_pixbuf_get_n_channels(pixbuf));
+		pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
 		dataSize = sizeof(GdkPixbuf*) + pixbufLength;
 		v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);
 	    }
@@ -77,7 +77,7 @@ namespace node {
 			width,
 			height
 		);
-		pixbufLength = (width * height * gdk_pixbuf_get_n_channels(pixbuf));
+		pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
 		dataSize = sizeof(GdkPixbuf*) + pixbufLength;
 		v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);
 	    };

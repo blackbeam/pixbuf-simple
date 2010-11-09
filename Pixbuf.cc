@@ -39,6 +39,21 @@ namespace node {
     	    int width = args[1]->ToInt32()->Value();
     	    int height = args[2]->ToInt32()->Value();
 	    pb = new Pixbuf(has_alpha, width, height);
+	}
+	/* new Pixbuf(fileName: String) */
+	else if (args.Length() == 1 && args[0]->IsString()) {
+	    GError *err = NULL;
+	    String::Utf8Value fileName(args[0]);
+	    GdkPixbuf *tmp = gdk_pixbuf_new_from_file(*fileName, &err);
+	    if (!tmp) {
+		Local< String > errStr = String::New(err->message);
+		g_clear_error(&err);
+		return ThrowException(Exception::Error(errStr));
+	    }
+	    pb = new Pixbuf( gdk_pixbuf_get_pixels( tmp ),
+			     gdk_pixbuf_get_has_alpha( tmp ),
+			     gdk_pixbuf_get_width( tmp ),
+			     gdk_pixbuf_get_height( tmp ) );
 	} else {
 	    return ThrowException(Exception::TypeError(String::New("Wrong arguments.")));
 	}
@@ -99,7 +114,7 @@ namespace node {
 	}
 
 	if (strcmp(*propName, "length") == 0) {
-	    return scope.Close(Uint32::New(self->getLength()));
+	    return scope.Close(Uint32::New(self->getWidth() * self->getHeight()));
 	}
 
 	return Handle< Value > ();
@@ -201,19 +216,18 @@ namespace node {
 	    return Handle<Value>();
 
 	Local<v8::Object> p = v8::Object::New();
-	if (self->hasAlpha()) {
-	    guchar* pix = self->getPixels() + (index * 4 /* rgba */);
-	    p->Set(red_sym, Uint32::New(pix[0]));
-	    p->Set(green_sym, Uint32::New(pix[1]));
-	    p->Set(blue_sym, Uint32::New(pix[2]));
-	    p->Set(alpha_sym, Uint32::New(pix[3]));
-	} else {
-	    guchar* pix = self->getPixels() + (index * 3 /* rgb */);
-	    p->Set(red_sym, Uint32::New(pix[0]));
-	    p->Set(green_sym, Uint32::New(pix[1]));
-	    p->Set(blue_sym, Uint32::New(pix[2]));
-	}
 
+	int y = index / self->getHeight();
+	int x = index % self->getWidth();
+
+	guchar* pix = self->getPixels() + y * self->getRowstride() + x * self->getNChannels();
+
+	p->Set(red_sym, Uint32::New(pix[0]));
+	p->Set(green_sym, Uint32::New(pix[1]));
+	p->Set(blue_sym, Uint32::New(pix[2]));;
+	if (self->hasAlpha()) {
+	    p->Set(alpha_sym, Uint32::New(pix[3]));
+	}
 	return scope.Close(p);
     }
 
@@ -240,11 +254,12 @@ namespace node {
 
 	ok:
 
+	int y = index / self->getHeight();
+	int x = index % self->getWidth();
+
+	pix = self->getPixels() + y * self->getRowstride() + x * self->getNChannels();
 	if (self->hasAlpha()) {
-	    pix = self->getPixels() + (index * 4 /* rgba */);
 	    if (p->Has(alpha_sym) && p->Get(alpha_sym)->IsUint32()) pix[3] = p->Get(alpha_sym)->ToUint32()->Value();
-	} else {
-	    pix = self->getPixels() + (index * 3 /* rgb */);
 	}
 	if (p->Has(red_sym) && p->Get(red_sym)->IsUint32()) pix[0] = p->Get(red_sym)->ToUint32()->Value();
 	if (p->Has(green_sym) && p->Get(green_sym)->IsUint32()) pix[1] = p->Get(green_sym)->ToUint32()->Value();
