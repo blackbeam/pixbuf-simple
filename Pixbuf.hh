@@ -11,7 +11,7 @@ namespace node {
     class Pixbuf : public ObjectWrap {
 	public:
 	    ~Pixbuf() {
-		v8::V8::AdjustAmountOfExternalAllocatedMemory(-mylength);
+		v8::V8::AdjustAmountOfExternalAllocatedMemory(-dataSize);
 		g_object_unref(pixbuf);
 	    };
 
@@ -24,7 +24,6 @@ namespace node {
 	    }
 
 	    static v8::Handle<v8::Value> toImage(const v8::Arguments &args);
-	    static v8::Handle<v8::Value> copy(const v8::Arguments &args);
 
 	    GdkColorspace getColorspace() { return gdk_pixbuf_get_colorspace(pixbuf); };
 	    int getNChannels() { return gdk_pixbuf_get_n_channels(pixbuf); };
@@ -35,7 +34,7 @@ namespace node {
 	    int getHeight() { return gdk_pixbuf_get_height(pixbuf); };
 	    int getRowstride() { return gdk_pixbuf_get_rowstride(pixbuf); };
 	    const gchar* getOption(const gchar *key) { return gdk_pixbuf_get_option(pixbuf, key); };
-	    long int getLength() { return mylength; };
+	    long int getLength() { return pixbufLength; };
 	    GdkPixbuf *getPixbuf() { return pixbuf; };
 
 	private:
@@ -46,13 +45,16 @@ namespace node {
 	    static v8::Handle<v8::Boolean> checkPixel(uint32_t index, const v8::AccessorInfo &info);
 	    static v8::Handle<v8::Array> enumeratePixel(const v8::AccessorInfo &info);
 
+	    static v8::Handle<v8::Value> paramsGetter(v8::Local<v8::String> property, const v8::AccessorInfo &info);
+
 	    Pixbuf(GdkPixbuf *source) : ObjectWrap() {
 		pixbuf = gdk_pixbuf_copy(source);
-		mylength = sizeof(GdkPixbuf*) + (gdk_pixbuf_get_width(pixbuf) * gdk_pixbuf_get_height(pixbuf) * gdk_pixbuf_get_n_channels(pixbuf));
-		v8::V8::AdjustAmountOfExternalAllocatedMemory(mylength);
+		pixbufLength = (gdk_pixbuf_get_width(pixbuf) * gdk_pixbuf_get_height(pixbuf) * gdk_pixbuf_get_n_channels(pixbuf));
+		dataSize = sizeof(GdkPixbuf*) + pixbufLength;
+		v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);
 	    }
 
-	    Pixbuf(guchar * pixels, gboolean has_alpha, int width, int height) : ObjectWrap() {
+	    Pixbuf(guchar * pixels, bool has_alpha, int width, int height) : ObjectWrap() {
 		int rowstride = has_alpha ? width*4*8 : width*3*8;
 		pixbuf = gdk_pixbuf_new_from_data(
 			pixels,
@@ -62,8 +64,9 @@ namespace node {
 			width, height,
 			rowstride,
 			NULL, NULL);
-		mylength = sizeof(GdkPixbuf*) + (width * height * gdk_pixbuf_get_n_channels(pixbuf));
-		v8::V8::AdjustAmountOfExternalAllocatedMemory(mylength);
+		pixbufLength = (width * height * gdk_pixbuf_get_n_channels(pixbuf));
+		dataSize = sizeof(GdkPixbuf*) + pixbufLength;
+		v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);
 	    }
 
 	    Pixbuf(gboolean has_alpha, int width, int height) : ObjectWrap() {
@@ -74,14 +77,16 @@ namespace node {
 			width,
 			height
 		);
-		mylength = sizeof(GdkPixbuf*) + (width * height * gdk_pixbuf_get_n_channels(pixbuf));
-		v8::V8::AdjustAmountOfExternalAllocatedMemory(mylength);
+		pixbufLength = (width * height * gdk_pixbuf_get_n_channels(pixbuf));
+		dataSize = sizeof(GdkPixbuf*) + pixbufLength;
+		v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);
 	    };
 
 	    gboolean save(const char *type);
 
 	    GdkPixbuf *pixbuf;
-	    long int mylength;
+	    long int dataSize;
+	    long int pixbufLength;
     };
 }
 #endif

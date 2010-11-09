@@ -25,7 +25,7 @@ namespace node {
 	Pixbuf *pb;
 
 	/* new Pixbuf(pixels: Buffer, has_alpha: bool, width: Integer, height: Integer) */
-	if (args.Length() == 5 && Buffer::HasInstance(args[0]) && args[1]->IsBoolean() && args[2]->IsInt32() && args[3]->IsInt32() && args[4]->IsInt32()) {
+	if (args.Length() == 4 && Buffer::HasInstance(args[0]) && args[1]->IsBoolean() && args[2]->IsInt32() && args[3]->IsInt32()) {
 	    Buffer *bPixels = ObjectWrap::Unwrap<Buffer>(args[0]->ToObject());
 	    guchar *pixels = (guchar*) bPixels->data();
 	    bool has_alpha = args[1]->ToBoolean()->Value();
@@ -44,9 +44,6 @@ namespace node {
 	}
 
 	pb->Wrap(args.This());
-	args.This()->Set(String::NewSymbol("length"), Uint32::New(pb->getWidth() * pb->getHeight()));
-	args.This()->Set(String::NewSymbol("width"), Uint32::New(pb->getWidth()));
-	args.This()->Set(String::NewSymbol("height"), Uint32::New(pb->getHeight()));
 
 	return args.This();
     }
@@ -66,20 +63,46 @@ namespace node {
 
 	constructor_template->InstanceTemplate()->SetIndexedPropertyHandler(
 		Pixbuf::getPixel, Pixbuf::setPixel, 0, Pixbuf::checkPixel, Pixbuf::enumeratePixel);
+	constructor_template->InstanceTemplate()->SetAccessor(String::NewSymbol("pixels"), Pixbuf::paramsGetter);
+	constructor_template->InstanceTemplate()->SetAccessor(String::NewSymbol("has_alpha"), Pixbuf::paramsGetter);
+	constructor_template->InstanceTemplate()->SetAccessor(String::NewSymbol("width"), Pixbuf::paramsGetter);
+	constructor_template->InstanceTemplate()->SetAccessor(String::NewSymbol("height"), Pixbuf::paramsGetter);
+	constructor_template->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), Pixbuf::paramsGetter);
 
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "copy", Pixbuf::copy);
 	NODE_SET_PROTOTYPE_METHOD(constructor_template, "toImage", Pixbuf::toImage);
 
 	target->Set(String::NewSymbol("Pixbuf"), constructor_template->GetFunction());
     }
 
-    Handle<Value> Pixbuf::copy(const Arguments &args) {
+    Handle<Value> Pixbuf::paramsGetter(Local< String > property, const AccessorInfo &info) {
 	HandleScope scope;
-	
-	Pixbuf *src = ObjectWrap::Unwrap<Pixbuf>(args.This());
-	Pixbuf *dst = new Pixbuf(src->getPixbuf());
 
-	return scope.Close(dst->handle_);
+	String::Utf8Value propName(property);
+	Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(info.This());
+
+	if (strcmp(*propName, "pixels") == 0) {
+	    Buffer *pixels = Buffer::New(self->getLength());
+  	    memcpy(pixels->data(), self->getPixels(), self->getLength());
+    	    return scope.Close(pixels->handle_);
+	}
+
+	if (strcmp(*propName, "has_alpha") == 0) {
+	    return scope.Close(Boolean::New(self->hasAlpha()));
+	}
+
+	if (strcmp(*propName, "width") == 0) {
+	    return scope.Close(Uint32::New(self->getWidth()));
+	}
+
+	if (strcmp(*propName, "height") == 0) {
+	    return scope.Close(Uint32::New(self->getHeight()));
+	}
+
+	if (strcmp(*propName, "length") == 0) {
+	    return scope.Close(Uint32::New(self->getLength()));
+	}
+
+	return Handle< Value > ();
     }
 
     Handle<Value> Pixbuf::toImage(const Arguments &args) {
