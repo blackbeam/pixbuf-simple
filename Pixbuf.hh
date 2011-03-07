@@ -8,7 +8,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 namespace node {
-    class Pixbuf : public ObjectWrap {
+    class Pixbuf : public node::ObjectWrap {
 	public:
 	    ~Pixbuf() {
 		v8::V8::AdjustAmountOfExternalAllocatedMemory(-dataSize);

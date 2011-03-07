@@ -27,7 +27,7 @@ namespace node {
 	/* new Pixbuf(pixels: Buffer, has_alpha: bool, width: Integer, height: Integer) */
 	if (args.Length() == 4 && Buffer::HasInstance(args[0]) && args[1]->IsBoolean() && args[2]->IsInt32() && args[3]->IsInt32()) {
 	    Buffer *bPixels = ObjectWrap::Unwrap<Buffer>(args[0]->ToObject());
-	    guchar *pixels = (guchar*) bPixels->data();
+	    guchar *pixels = (guchar*) Buffer::Data( bPixels );
 	    bool has_alpha = args[1]->ToBoolean()->Value();
     	    int width = args[2]->ToInt32()->Value();
     	    int height = args[3]->ToInt32()->Value();
@@ -97,7 +97,7 @@ namespace node {
 
 	if (strcmp(*propName, "pixels") == 0) {
 	    Buffer *pixels = Buffer::New(self->getLength());
-  	    memcpy(pixels->data(), self->getPixels(), self->getLength());
+  	    memcpy( Buffer::Data( pixels ), self->getPixels(), self->getLength());
     	    return scope.Close(pixels->handle_);
 	}
 
@@ -180,7 +180,7 @@ namespace node {
 	}
 
 	Buffer *buffer = Buffer::New(bufsize);
-	memcpy(buffer->data(), buf, bufsize);
+	memcpy( Buffer::Data( buffer ), buf, bufsize);
 
 	g_free(buf);
 
