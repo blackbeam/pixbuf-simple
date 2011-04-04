@@ -39,11 +39,11 @@ namespace node {
             int height = args[2]->ToInt32()->Value();
             pb = new Pixbuf(has_alpha, width, height);
         }
-        /* new Pixbuf(fileName: String, [width: Integer, [height: Integer, [preserv_aspect_ratio: bool]]]) */
+        /* new Pixbuf(fileName: String, [width: Number, [height: Number, [preserv_aspect_ratio: bool]]]) */
         else if ( 0 < args.Length() && args.Length() < 5 &&
 		args[0]->IsString() &&
-		! ( args.Length() > 1 && ! args[1]->IsInt32() ) &&
-		! ( args.Length() > 2 && ! args[2]->IsInt32() ) &&
+		! ( args.Length() > 1 && ! args[1]->IsNumber() ) &&
+		! ( args.Length() > 2 && ! args[2]->IsNumber() ) &&
 		! ( args.Length() > 3 && ! args[3]->IsBoolean() ) ) {
             GError *err = NULL;
             String::Utf8Value fileName(args[0]);
@@ -54,8 +54,8 @@ namespace node {
 		int width = -1, height = -1;
 		gboolean preserv_aspect_ratio = true;
 		if ( args.Length() > 3 ) preserv_aspect_ratio = args[3]->ToBoolean()->Value();
-		if ( args.Length() > 2 ) height = args[2]->ToInt32()->Value();
-		if ( args.Length() > 1 ) width = args[1]->ToInt32()->Value();
+		if ( args.Length() > 2 ) height = static_cast<int> ( args[2]->ToNumber()->Value() );
+		if ( args.Length() > 1 ) width = static_cast<int> ( args[1]->ToNumber()->Value() );
 		tmp = gdk_pixbuf_new_from_file_at_scale( *fileName, width, height, preserv_aspect_ratio, &err );
 	    }
 	    if (!tmp) {
