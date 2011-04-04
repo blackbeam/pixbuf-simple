@@ -39,21 +39,35 @@ namespace node {
             int height = args[2]->ToInt32()->Value();
             pb = new Pixbuf(has_alpha, width, height);
         }
-        /* new Pixbuf(fileName: String) */
-        else if (args.Length() == 1 && args[0]->IsString()) {
+        /* new Pixbuf(fileName: String, [width: Integer, [height: Integer, [preserv_aspect_ratio: bool]]]) */
+        else if ( 0 < args.Length() && args.Length() < 5 &&
+		args[0]->IsString() &&
+		! ( args.Length() > 1 && ! args[1]->IsInt32() ) &&
+		! ( args.Length() > 2 && ! args[2]->IsInt32() ) &&
+		! ( args.Length() > 3 && ! args[3]->IsBoolean() ) ) {
             GError *err = NULL;
             String::Utf8Value fileName(args[0]);
-            GdkPixbuf *tmp = gdk_pixbuf_new_from_file(*fileName, &err);
-            if (!tmp) {
-                Local< String > errStr = String::New(err->message);
-                g_clear_error(&err);
-                return ThrowException(Exception::Error(errStr));
-            }
-            pb = new Pixbuf( gdk_pixbuf_get_pixels( tmp ),
-                    gdk_pixbuf_get_has_alpha( tmp ),
-                    gdk_pixbuf_get_width( tmp ),
-                    gdk_pixbuf_get_height( tmp ) );
-        } else {
+	    GdkPixbuf *tmp;
+	    if ( args.Length() == 1 ) {
+	      tmp = gdk_pixbuf_new_from_file(*fileName, &err);
+	    } else {
+		int width = -1, height = -1;
+		gboolean preserv_aspect_ratio = true;
+		if ( args.Length() > 3 ) preserv_aspect_ratio = args[3]->ToBoolean()->Value();
+		if ( args.Length() > 2 ) height = args[2]->ToInt32()->Value();
+		if ( args.Length() > 1 ) width = args[1]->ToInt32()->Value();
+		tmp = gdk_pixbuf_new_from_file_at_scale( *fileName, width, height, preserv_aspect_ratio, &err );
+	    }
+	    if (!tmp) {
+		Local< String > errStr = String::New(err->message);
+		g_clear_error(&err);
+		return ThrowException(Exception::Error(errStr));
+	    }
+	    pb = new Pixbuf( gdk_pixbuf_get_pixels( tmp ),
+		    gdk_pixbuf_get_has_alpha( tmp ),
+		    gdk_pixbuf_get_width( tmp ),
+		    gdk_pixbuf_get_height( tmp ) );
+	} else {
             return ThrowException(Exception::TypeError(String::New("Wrong arguments.")));
         }
         pb->Wrap(args.This());

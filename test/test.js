@@ -70,7 +70,34 @@ module.exports = {
 	  test.deepEqual ( p[2], { r : 0, g : 255, b : 0} );
 	  test.deepEqual ( p[3], { r : 0, g : 0, b : 255} );
 	  test.done();
-	}
+	},
+        'New from file at scale' : function ( test ) {
+	  test.expect ( 22 );
+	  var p = new Pixbuf ( 'test/fixtures/img.png', 4, 4 );
+	  test.equal ( p.length, 16 );
+	  test.equal ( p.width, 4 );
+	  test.equal ( p.height, 4 );
+	  test.equal ( p.has_alpha, false );
+	  test.ok ( Buffer.isBuffer( p.pixels ) );
+	  test.equal ( p.pixels.length, 48 );
+	  test.deepEqual ( p[0x00], { r : 0x00, g : 0x00, b : 0x00} );
+	  test.deepEqual ( p[0x01], { r : 0x40, g : 0x00, b : 0x00} );
+	  test.deepEqual ( p[0x02], { r : 0xbf, g : 0x00, b : 0x00} );
+	  test.deepEqual ( p[0x03], { r : 0xff, g : 0x00, b : 0x00} );
+          test.deepEqual ( p[0x04], { r : 0x00, g : 0x40, b : 0x00} );
+          test.deepEqual ( p[0x05], { r : 0x30, g : 0x30, b : 0x10} );
+          test.deepEqual ( p[0x06], { r : 0x8f, g : 0x10, b : 0x30} );
+          test.deepEqual ( p[0x07], { r : 0xbf, g : 0x00, b : 0x40} );
+          test.deepEqual ( p[0x08], { r : 0x00, g : 0xbf, b : 0x00} );
+          test.deepEqual ( p[0x09], { r : 0x10, g : 0x8f, b : 0x30} );
+          test.deepEqual ( p[0x0a], { r : 0x30, g : 0x30, b : 0x8f} );
+          test.deepEqual ( p[0x0b], { r : 0x40, g : 0x00, b : 0xbf} );
+          test.deepEqual ( p[0x0c], { r : 0x00, g : 0xff, b : 0x00} );
+          test.deepEqual ( p[0x0d], { r : 0x00, g : 0xbf, b : 0x40} );
+          test.deepEqual ( p[0x0e], { r : 0x00, g : 0x40, b : 0xbf} );
+          test.deepEqual ( p[0x0f], { r : 0x00, g : 0x00, b : 0xff} );
+	  test.done();
+	},
   },
   manipulation : {
 	'Set pixel' : function ( test ) {
