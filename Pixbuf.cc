@@ -129,7 +129,7 @@ namespace node {
             return scope.Close(Uint32::New(self->getWidth() * self->getHeight()));
         }
 
-        return Handle< Value > ();
+        return Undefined();
     }
 
     Handle<Value> Pixbuf::toImage(const Arguments &args) {
@@ -215,9 +215,7 @@ namespace node {
         Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(info.This());
         HandleScope scope;
 
-        if (index > self->getWidth() * self->getHeight() - 1)
-            return Boolean::New(false);
-        return Boolean::New(true);
+	return scope.Close(Boolean::New(index < self->getWidth() * self->getHeight() - 1));
     }
 
     Handle<Value> Pixbuf::getPixel(uint32_t index, const AccessorInfo &info) {
@@ -277,7 +275,7 @@ ok:
         if (p->Has(green_sym) && p->Get(green_sym)->IsUint32()) pix[1] = p->Get(green_sym)->ToUint32()->Value();
         if (p->Has(blue_sym) && p->Get(blue_sym)->IsUint32()) pix[2] = p->Get(blue_sym)->ToUint32()->Value();
 
-        return info.This()->Get(index);
+        return scope.Close(info.This()->Get(index));
     }
 
 }
