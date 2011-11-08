@@ -9,3 +9,5 @@ build/default/pixbuf.node: Pixbuf.cc Pixbuf.hh build/c4che/build.config.py
 build/c4che/build.config.py: wscript
 	node-waf -v configure
 
+clear:
+	rm -rf build

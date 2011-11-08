@@ -1,4 +1,4 @@
-var Pixbuf = require( '../build/default/pixbuf' ).Pixbuf;
+var Pixbuf = require( '../build/Release/pixbuf' ).Pixbuf;
 
 module.exports = {
   creation : {
