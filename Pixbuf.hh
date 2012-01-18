@@ -11,7 +11,7 @@ namespace node {
   class Pixbuf : public node::ObjectWrap {
 	public:
 	  ~Pixbuf() {
-		v8::V8::AdjustAmountOfExternalAllocatedMemory(-dataSize);
+		v8::V8::AdjustAmountOfExternalAllocatedMemory(-(this->getLength() * sizeof(GdkPixbuf*)));
 		g_object_unref(pixbuf);
 	  };
 
@@ -24,6 +24,7 @@ namespace node {
 	  }
 
 	  static v8::Handle<v8::Value> toImage(const v8::Arguments &args);
+	  static v8::Handle<v8::Value> scale(const v8::Arguments &args);
 
 	  GdkColorspace getColorspace() { return gdk_pixbuf_get_colorspace(pixbuf); };
 	  int getNChannels() { return gdk_pixbuf_get_n_channels(pixbuf); };
@@ -34,8 +35,12 @@ namespace node {
 	  int getHeight() { return gdk_pixbuf_get_height(pixbuf); };
 	  int getRowstride() { return gdk_pixbuf_get_rowstride(pixbuf); };
 	  const gchar* getOption(const gchar *key) { return gdk_pixbuf_get_option(pixbuf, key); };
-	  long int getLength() { return pixbufLength; };
+	  long int getLength() { return gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ); };
 	  GdkPixbuf *getPixbuf() { return pixbuf; };
+	  void setPixbuf(GdkPixbuf* newpb) {
+	  		g_object_unref(pixbuf);
+        	pixbuf = newpb;
+	  }
 
 	private:
 	  static v8::Persistent<v8::FunctionTemplate> constructor_template;
@@ -49,8 +54,8 @@ namespace node {
 
 	  Pixbuf(GdkPixbuf *source) : ObjectWrap() {
 		pixbuf = gdk_pixbuf_copy(source);
-		pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
-		dataSize = sizeof(GdkPixbuf*) + pixbufLength;
+		long int pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
+		long int dataSize = sizeof(GdkPixbuf*) + pixbufLength;
 		v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);
 	  }
 
@@ -65,8 +70,8 @@ namespace node {
 			width, height,
 			rowstride,
 			NULL, NULL);
-		pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
-		dataSize = sizeof(GdkPixbuf*) + pixbufLength;
+		long int pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
+		long int dataSize = sizeof(GdkPixbuf*) + pixbufLength;
 		v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);
 	  }
 
@@ -78,16 +83,14 @@ namespace node {
 			width,
 			height
 			);
-		pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
-		dataSize = sizeof(GdkPixbuf*) + pixbufLength;
+		long int pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
+		long int dataSize = sizeof(GdkPixbuf*) + pixbufLength;
 		v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);
 	  };
 
 	  gboolean save(const char *type);
 
 	  GdkPixbuf *pixbuf;
-	  long int dataSize;
-	  long int pixbufLength;
   };
 }
 #endif

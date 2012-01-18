@@ -97,6 +97,7 @@ namespace node {
         constructor_template->InstanceTemplate()->SetAccessor(String::NewSymbol("length"), Pixbuf::paramsGetter);
 
         NODE_SET_PROTOTYPE_METHOD(constructor_template, "toImage", Pixbuf::toImage);
+        NODE_SET_PROTOTYPE_METHOD(constructor_template, "scale", Pixbuf::scale);
 
         target->Set(String::NewSymbol("Pixbuf"), constructor_template->GetFunction());
     }
@@ -197,6 +198,28 @@ namespace node {
         g_free(buf);
 
         return scope.Close(buffer->handle_);
+    }
+
+    Handle<Value> Pixbuf::scale(const Arguments &args) {
+        HandleScope scope;
+        Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(args.This());
+        int width, height;
+        GdkPixbuf *newpb;
+
+        if (args.Length() < 2 || !args[0]->IsInt32() || !args[1]->IsInt32())
+            return ThrowException(Exception::Error(String::New("Wrong arguments: (width: Int32, height: Int32).")));
+        
+        width = args[0]->ToInt32()->Value();
+        height = args[1]->ToInt32()->Value();
+
+        newpb = gdk_pixbuf_scale_simple(self->getPixbuf(), width, height, GDK_INTERP_BILINEAR);
+
+        if (!newpb)
+            return ThrowException(Exception::Error(String::New("Not enough memory to allocate new pixbuf.")));
+        
+        self->setPixbuf(newpb);
+
+        return scope.Close(args.This());
     }
 
     Handle<Array> Pixbuf::enumeratePixel(const AccessorInfo &info) {
