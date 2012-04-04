@@ -41,33 +41,34 @@ namespace node {
         }
         /* new Pixbuf(fileName: String, [width: Number, [height: Number, [preserv_aspect_ratio: bool]]]) */
         else if ( 0 < args.Length() && args.Length() < 5 &&
-		args[0]->IsString() &&
-		! ( args.Length() > 1 && ! args[1]->IsNumber() ) &&
-		! ( args.Length() > 2 && ! args[2]->IsNumber() ) &&
-		! ( args.Length() > 3 && ! args[3]->IsBoolean() ) ) {
+            args[0]->IsString() &&
+            ! ( args.Length() > 1 && ! args[1]->IsNumber() ) &&
+            ! ( args.Length() > 2 && ! args[2]->IsNumber() ) &&
+            ! ( args.Length() > 3 && ! args[3]->IsBoolean() )
+        ) {
             GError *err = NULL;
             String::Utf8Value fileName(args[0]);
-	    GdkPixbuf *tmp;
-	    if ( args.Length() == 1 ) {
-	      tmp = gdk_pixbuf_new_from_file(*fileName, &err);
-	    } else {
-		int width = -1, height = -1;
-		gboolean preserv_aspect_ratio = true;
-		if ( args.Length() > 3 ) preserv_aspect_ratio = args[3]->ToBoolean()->Value();
-		if ( args.Length() > 2 ) height = static_cast<int> ( args[2]->ToNumber()->Value() );
-		if ( args.Length() > 1 ) width = static_cast<int> ( args[1]->ToNumber()->Value() );
-		tmp = gdk_pixbuf_new_from_file_at_scale( *fileName, width, height, preserv_aspect_ratio, &err );
-	    }
-	    if (!tmp) {
-		Local< String > errStr = String::New(err->message);
-		g_clear_error(&err);
-		return ThrowException(Exception::Error(errStr));
-	    }
-	    pb = new Pixbuf( gdk_pixbuf_get_pixels( tmp ),
-		    gdk_pixbuf_get_has_alpha( tmp ),
-		    gdk_pixbuf_get_width( tmp ),
-		    gdk_pixbuf_get_height( tmp ) );
-	} else {
+            GdkPixbuf *tmp;
+            if ( args.Length() == 1 ) {
+                tmp = gdk_pixbuf_new_from_file(*fileName, &err);
+            } else {
+                int width = -1, height = -1;
+                gboolean preserv_aspect_ratio = true;
+                if ( args.Length() > 3 ) preserv_aspect_ratio = args[3]->ToBoolean()->Value();
+                if ( args.Length() > 2 ) height = static_cast<int> ( args[2]->ToNumber()->Value() );
+                if ( args.Length() > 1 ) width = static_cast<int> ( args[1]->ToNumber()->Value() );
+                tmp = gdk_pixbuf_new_from_file_at_scale( *fileName, width, height, preserv_aspect_ratio, &err );
+            }
+            if (!tmp) {
+                Local< String > errStr = String::New(err->message);
+                g_clear_error(&err);
+                return ThrowException(Exception::Error(errStr));
+            }
+            pb = new Pixbuf( gdk_pixbuf_get_pixels( tmp ),
+                gdk_pixbuf_get_has_alpha( tmp ),
+                gdk_pixbuf_get_width( tmp ),
+                gdk_pixbuf_get_height( tmp ) );
+        } else {
             return ThrowException(Exception::TypeError(String::New("Wrong arguments.")));
         }
         pb->Wrap(args.This());
@@ -89,7 +90,7 @@ namespace node {
         constructor_template->SetClassName(String::NewSymbol("Pixbuf"));
 
         constructor_template->InstanceTemplate()->SetIndexedPropertyHandler(
-                Pixbuf::getPixel, Pixbuf::setPixel, 0, Pixbuf::checkPixel, Pixbuf::enumeratePixel);
+            Pixbuf::getPixel, Pixbuf::setPixel, 0, Pixbuf::checkPixel, Pixbuf::enumeratePixel);
         constructor_template->InstanceTemplate()->SetAccessor(String::NewSymbol("pixels"), Pixbuf::paramsGetter);
         constructor_template->InstanceTemplate()->SetAccessor(String::NewSymbol("has_alpha"), Pixbuf::paramsGetter);
         constructor_template->InstanceTemplate()->SetAccessor(String::NewSymbol("width"), Pixbuf::paramsGetter);
@@ -173,7 +174,6 @@ namespace node {
                         keys[keyn] = values[keyn] = NULL;
                     }
                 }
-
             }
         }
         gboolean isOk = true;
@@ -239,7 +239,7 @@ namespace node {
         Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(info.This());
         HandleScope scope;
 
-	return scope.Close(Boolean::New(index < self->getWidth() * self->getHeight() - 1));
+        return scope.Close(Boolean::New(index < self->getWidth() * self->getHeight() - 1));
     }
 
     Handle<Value> Pixbuf::getPixel(uint32_t index, const AccessorInfo &info) {
@@ -279,14 +279,14 @@ namespace node {
         p = value->ToObject();
         goto ok;
 
-error:
+        error:
 
         if (self->hasAlpha())
             return ThrowException(Exception::TypeError(String::New("Pixel must be an object: {r: Integer, g: Integer, b: Integer, a: Integer}")));
         else
             return ThrowException(Exception::TypeError(String::New("Pixel must be an object: {r: Integer, g: Integer, b: Integer}")));
 
-ok:
+        ok:
 
         int y = index / self->getHeight();
         int x = index % self->getWidth();
@@ -346,7 +346,7 @@ ok:
 }
 
 // Exporting function
-    extern "C" void
+extern "C" void
 init (v8::Handle<v8::Object> target)
 {
     HandleScope scope;
