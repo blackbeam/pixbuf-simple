@@ -98,6 +98,7 @@ namespace node {
 
         NODE_SET_PROTOTYPE_METHOD(constructor_template, "toImage", Pixbuf::toImage);
         NODE_SET_PROTOTYPE_METHOD(constructor_template, "scale", Pixbuf::scale);
+        NODE_SET_PROTOTYPE_METHOD(constructor_template, "drawGlyph", Pixbuf::drawGlyph);
 
         target->Set(String::NewSymbol("Pixbuf"), constructor_template->GetFunction());
     }
@@ -301,6 +302,47 @@ ok:
         return scope.Close(info.This()->Get(index));
     }
 
+    Handle<Value> Pixbuf::drawGlyph(const Arguments &args) {
+        HandleScope scope;
+        Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(args.This());
+        int width, height, rowstride, n_channels, x1, y1, x2, y2;
+        guchar *pixels, *p;
+        // glyph color rgba
+        double r = 100, g = 255, b = 100, a = 120, nr, ng, nb;
+
+        if (args.Length() < 4 || !args[0]->IsInt32() || !args[1]->IsInt32() || !args[2]->IsInt32() || !args[3]->IsInt32()) {
+            return ThrowException(Exception::Error(String::New("Wrong arguments: (x1: Int32, y1: Int32, x2: Int32, y2: Int32>).")));
+        }
+
+        x1 = args[0]->ToInt32()->Value();
+        y1 = args[1]->ToInt32()->Value();
+        x2 = args[2]->ToInt32()->Value();
+        y2 = args[3]->ToInt32()->Value();
+
+        n_channels = self->getNChannels();
+        width = self->getWidth();
+        height = self->getHeight();
+        rowstride = self->getRowstride();
+        pixels = self->getPixels();
+
+        if (x1 < 0 || x2 < x1 || y1 < 0 || y2 < y1 || x2 >= width || y2 >= height) {
+            return ThrowException(Exception::RangeError(String::New("Glyph out of image geometry")));
+        }
+
+        for (int ty1 = y1, ty2 = y2;ty1 <= ty2; ty1++) {
+            for (int tx1 = x1, tx2 = x2;tx1 <= tx2; tx1++) {
+                p = pixels + ty1 * rowstride + tx1 * n_channels;
+                nr = (0xff - a) * ((float)p[0] / 0xff) + a * (r / 0xff);
+                ng = (0xff - a) * ((float)p[1] / 0xff) + a * (g / 0xff);
+                nb = (0xff - a) * ((float)p[2] / 0xff) + a * (b / 0xff);
+                p[0] = (nr > 255) ? 255 : nr;
+                p[1] = (ng > 255) ? 255 : ng;
+                p[2] = (nb > 255) ? 255 : nb;
+            }
+        }
+
+        return scope.Close(args.This());
+    }
 }
 
 // Exporting function

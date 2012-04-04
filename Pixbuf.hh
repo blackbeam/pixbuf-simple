@@ -25,6 +25,7 @@ namespace node {
 
 	  static v8::Handle<v8::Value> toImage(const v8::Arguments &args);
 	  static v8::Handle<v8::Value> scale(const v8::Arguments &args);
+	  static v8::Handle<v8::Value> drawGlyph(const v8::Arguments &args);
 
 	  GdkColorspace getColorspace() { return gdk_pixbuf_get_colorspace(pixbuf); };
 	  int getNChannels() { return gdk_pixbuf_get_n_channels(pixbuf); };
