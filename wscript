@@ -13,5 +13,5 @@ def configure(conf):
 def build(bld):
   obj = bld.new_task_gen('cxx', 'shlib', 'node_addon')
   obj.target = 'pixbuf'
-  obj.source = 'Pixbuf.cc'
+  obj.source = './src/Pixbuf.cc'
   obj.uselib = ['GDK-PIXBUF-2.0']
