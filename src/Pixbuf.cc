@@ -18,6 +18,21 @@ static Persistent<String> green_sym;
 static Persistent<String> blue_sym;
 static Persistent<String> alpha_sym;
 
+struct render_work_t
+{
+    Pixbuf *src;
+    uv_work_t request;
+    const char *type;
+    gchar **keys;
+    gchar **values;
+    uint32_t optc;
+    GError *err;
+    Persistent<Function> cb;
+    gchar *buffer;
+    gsize buffer_size;
+    gboolean isOk;
+};
+
 namespace node {
 
     Handle<Value> Pixbuf::New(const Arguments &args) {
@@ -138,67 +153,99 @@ namespace node {
     Handle<Value> Pixbuf::toImage(const Arguments &args) {
         HandleScope scope;
         Pixbuf *src = ObjectWrap::Unwrap<Pixbuf>(args.This());
-        gchar *buf;
-        gsize bufsize;
-        GError *err = NULL;
-        gchar **keys = NULL;
-        gchar **values = NULL;
-        int keyn = 0;
 
-        if (args.Length() < 1)
-            return ThrowException(Exception::Error(String::New("Wrong arguments: (type: String[, params: Object]).")));
-        if (!args[0]->IsString())
-            return ThrowException(Exception::TypeError(String::New("`type' must be an instance of String.")));
+        if (args.Length() < 1 || args.Length() > 3) {
+            return ThrowException(
+                Exception::Error(String::New("Wrong arguments: (type: String[, params: Object[, cb: Function]]).")));
+        }
+        if (!args[0]->IsString()) {
+            return ThrowException(
+                Exception::Error(String::New("`type` must be a String.")));
+        }
+        String::Utf8Value type(args[0]);
 
-        String::Utf8Value typestr(args[0]);
+        struct render_work_t *work = new render_work_t();
+        work->request.data = work;
+        work->src = src;
+        work->type = g_strdup(*type);
+        if (args.Length() > 1 && !args[1]->IsFunction() && args[1]->IsObject()) {
+            Pixbuf::parseRenderOptions(args[1], &(work->keys), &(work->values), &(work->optc));
+        } else {
+            work->keys = NULL;
+            work->values = NULL;
+            work->optc = 0;
+        }
+        if (args[args.Length() - 1]->IsFunction()) {
+            work->cb = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length() - 1]->ToObject()));
+            uv_queue_work(uv_default_loop(), &work->request, Pixbuf::render, Pixbuf::afterRender);
+            return scope.Close(args.This());
+        } else {
+            Buffer *buffer;
+            Local<Value> error;
+            Pixbuf::render(&(work->request));
+            if (work->isOk) {
+                buffer = Buffer::New(work->buffer_size);
+                memcpy(Buffer::Data(buffer), work->buffer, work->buffer_size);
+                g_free(work->buffer);
+            } else {
+                error = Exception::Error(String::New(work->err->message));
+                g_error_free(work->err);
+            }
+            g_free((void *) work->type);
+            if (work->keys) g_strfreev(work->keys);
+            if (work->values) g_strfreev(work->values);
+            return scope.Close(buffer->handle_);
+        }
+    }
 
-        if (args.Length() == 2) {
-            if (!args[1]->IsObject())
-                return ThrowException(Exception::TypeError(String::New("`params' must be an instance of Object.")));
+    void Pixbuf::render(uv_work_t* work_req) {
+        render_work_t *work = static_cast<render_work_t *>(work_req->data);
+        work->isOk = gdk_pixbuf_save_to_bufferv(work->src->getPixbuf(), &(work->buffer), &(work->buffer_size), work->type, work->keys, work->values, &(work->err));
+    }
 
-            Local<v8::Object> params = args[1]->ToObject();
-            Local<Array> v8keys = params->GetPropertyNames();
+    void Pixbuf::afterRender(uv_work_t* work_req) {
+        HandleScope scope;
+        render_work_t *work = static_cast<render_work_t *>(work_req->data);
+        if (work->isOk) {
+            Buffer *buffer = Buffer::New(work->buffer_size);
+            memcpy( Buffer::Data( buffer ), work->buffer, work->buffer_size);
+            g_free(work->buffer);
+            Local<Value> argv[2] = {Local<Value>::New(Null()), Local<Value>::New(buffer->handle_)};
+            work->cb->Call(Context::GetCurrent()->Global(), 2, argv);
+        } else {
+            Local<Value> argv[1] = {Exception::Error(String::New(work->err->message))};
+            g_error_free(work->err);
+            work->cb->Call(Context::GetCurrent()->Global(), 2, argv);
+        }
+        g_free((void *)work->type);
+        if (work->keys) g_strfreev(work->keys);
+        if (work->values) g_strfreev(work->values);
+    }
+
+    void Pixbuf::parseRenderOptions(Local<Value> options, gchar ***keys, gchar ***values, uint32_t *optc) {
+        HandleScope scope;
+        (*keys) = (*values) = NULL;
+        *optc = 0;
+        if (!options.IsEmpty() && !options->IsNull() && !options->IsUndefined()) {
+            Local<Array> v8keys = options->ToObject()->GetPropertyNames();
             uint32_t len = v8keys->Length();
             if (len != 0) {
                 for (int i = 0; i < len; i++) {
                     Local<String> v8key = Local<String>::Cast(v8keys->Get(i));
                     String::Utf8Value keystr(v8key);
-                    Local<Value> v8value = params->Get(v8key);
+                    Local<Value> v8value = options->ToObject()->Get(v8key);
                     if (v8value->IsString()) {
                         String::Utf8Value valuestr(v8value);
-                        keyn++;
-                        keys = (gchar **)realloc(keys, sizeof(gchar *) * keyn+1);
-                        values = (gchar **)realloc(values, sizeof(gchar *) * keyn+1);
-                        keys[keyn-1] = g_strdup(*keystr);
-                        values[keyn-1] = g_strdup(*valuestr);
-                        keys[keyn] = values[keyn] = NULL;
+                        (*optc) = (*optc) + 1;
+                        (*keys) = (gchar **)realloc((*keys), sizeof(gchar *) * (*optc)+1);
+                        (*values) = (gchar **)realloc((*values), sizeof(gchar *) * (*optc)+1);
+                        (*keys)[(*optc)-1] = g_strdup(*keystr);
+                        (*values)[(*optc)-1] = g_strdup(*valuestr);
+                        (*keys)[(*optc)] = (*values)[(*optc)] = NULL;
                     }
                 }
             }
         }
-        gboolean isOk = true;
-        if (keys != NULL) {
-            isOk = gdk_pixbuf_save_to_bufferv(src->getPixbuf(), &buf, &bufsize, *typestr, keys, values, &err);
-            for ( int i = 0; i < keyn+1; i++ ) {
-                free( keys[i] );
-                free( values[i] );
-            }
-            if ( keys != NULL ) free( keys );
-            if ( values != NULL ) free( values );
-        } else {
-            isOk = gdk_pixbuf_save_to_buffer(src->getPixbuf(), &buf, &bufsize, *typestr, &err, NULL);
-        }
-
-        if (!isOk) {
-            return ThrowException(Exception::Error(String::New(err->message)));
-        }
-
-        Buffer *buffer = Buffer::New(bufsize);
-        memcpy( Buffer::Data( buffer ), buf, bufsize);
-
-        g_free(buf);
-
-        return scope.Close(buffer->handle_);
     }
 
     Handle<Value> Pixbuf::scale(const Arguments &args) {

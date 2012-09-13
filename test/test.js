@@ -108,16 +108,30 @@ module.exports = {
         }
     },
     conversion : {
-        'To image' : function (test) {
+        'To image asyncroniously' : function (test) {
             var p = new Pixbuf(false, 1 , 1);
-            p[0] = { r : 0, g : 0, b : 0 };
-            var img = p.toImage('png', { 'compression' : '9' });
-            require('fs').writeFile('test/tmp.png', img, 'ascii', function(err) {
+            p[0] = { r : 64, g : 54, b : 44 };
+            p.toImage('png', {'compression': '9'}, function (err, img) {
+                if (err) throw err;
+                require('fs').writeFile('test/tmp.png', img, 'ascii', function (err) {
                     if (err) throw err;
                     var p2 = new Pixbuf('test/tmp.png');
                     require('fs').unlinkSync('test/tmp.png');
-                    test.deepEqual(p[0], { r : 0, g : 0, b : 0 });
+                    test.deepEqual(p[0], { r: 64, g: 54, b: 44});
                     test.done();
+                })
+            });
+        },
+        'To image syncroniously': function (test) {
+            var p = new Pixbuf(false, 1, 1);
+            p[0] = {r: 72, g: 82, b: 92};
+            var img = p.toImage('png', {'compression': '9'});
+            require('fs').writeFile('test/tmp.png', img, 'ascii', function (err) {
+                if (err) throw err;
+                var p2 = new Pixbuf('test/tmp.png');
+                require('fs').unlinkSync('test/tmp.png');
+                test.deepEqual(p[0], {r: 72, g: 82, b: 92});
+                test.done();
             });
         },
         'Scale' : function (test) {

@@ -1,8 +1,8 @@
 {
   "author": "AnatolyI <ai@rsl.ru>",
   "name": "pixbuf-simple",
-  "description": "A simple synchronous javascript interface to gdk-pixbuf 2.0",
-  "version": "0.0.1",
+  "description": "Simple javascript interface to gdk-pixbuf 2.0",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "git://github.com/blackbeam/node-pixbuf.git"
@@ -18,5 +18,6 @@
   "optionalDependencies": {},
   "engines": {
     "node": "*"
-  }
+  },
+  "keywords": ["pixbuf"]
 }
