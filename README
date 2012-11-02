@@ -1,4 +1,4 @@
-Simple synchronous javascript interface to gdk-pixbuf 2.0
+Simple javascript interface to gdk-pixbuf 2.0
 
 To build:
 
