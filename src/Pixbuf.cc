@@ -373,10 +373,6 @@ namespace node {
         Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(args.This());
         struct draw_glyph_work_t *work;
 
-        //if (args.Length() < 4 || !args[0]->IsInt32() || !args[1]->IsInt32() || !args[2]->IsInt32() || !args[3]->IsInt32()) {
-        //    return ThrowException(Exception::Error(String::New("Wrong arguments: (x1: Int32, y1: Int32, x2: Int32, y2: Int32).")));
-        //}
-
         if (args.Length() < 2 || args.Length() > 3 || !args[0]->IsObject() || !args[1]->IsObject() || (args.Length() == 3 && !args[2]->IsFunction())) {
             return ThrowException(Exception::Error(String::New("Wrong arguments: ({x1,y1,x2,y2},{r,g,b,a}[,cb]).")));
         }
