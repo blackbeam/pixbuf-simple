@@ -97,7 +97,7 @@ module.exports = {
             test.deepEqual(p[0x0e], { r : 0x00, g : 0x40, b : 0xbf });
             test.deepEqual(p[0x0f], { r : 0x00, g : 0x00, b : 0xff });
             test.done();
-        },
+        }
     },
     manipulation : {
         'Set pixel' : function (test) {
@@ -105,6 +105,26 @@ module.exports = {
             test.deepEqual(p[0] = { r : 0, g : 0, b : 0 }, { r : 0, g : 0, b : 0 });
             test.deepEqual(p[0], { r : 0, g : 0, b : 0 });
             test.done();
+        },
+        'Draw glyph syncroniously': function (test) {
+            var p = new Pixbuf(false, 10, 10);
+            for (var i = 0; i < 100; i++) {
+                p[i] = {r: 255, g: 255, b: 255};
+            }
+            p.drawGlyph({x1:1,x2:5,y1:1,y2:5}, {r:100,g:255,b:100,a:127});
+            test.deepEqual(p[12], {r: 177, g: 255, b:177});
+            test.done();
+        },
+        'Draw glyph asyncroniously': function (test) {
+            var p = new Pixbuf(false, 10, 10);
+            for (var i = 0; i < 100; i++) {
+                p[i] = {r: 255, g: 255, b: 255};
+            }
+            p.drawGlyph({x1:0,x2:5,y1:0,y2:5}, {r:100,g:255,b:100,a:127}, function (err) {
+                test.equal(err, null);
+                test.deepEqual(p[0], {r: 177, g: 255, b:177});
+                test.done();
+            });
         }
     },
     conversion : {
@@ -119,7 +139,7 @@ module.exports = {
                     require('fs').unlinkSync('test/tmp.png');
                     test.deepEqual(p[0], { r: 64, g: 54, b: 44});
                     test.done();
-                })
+                });
             });
         },
         'To image syncroniously': function (test) {

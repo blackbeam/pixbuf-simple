@@ -33,6 +33,23 @@ struct render_work_t
     gboolean isOk;
 };
 
+struct draw_glyph_work_t
+{
+    Pixbuf *src;
+    uv_work_t request;
+    const char *error;
+    int x1;
+    int y1;
+    int x2;
+    int y2;
+    double r;
+    double g;
+    double b;
+    double a;
+    Persistent<Function> cb;
+    gboolean isOk;
+};
+
 namespace node {
 
     Handle<Value> Pixbuf::New(const Arguments &args) {
@@ -194,6 +211,7 @@ namespace node {
             g_free((void *) work->type);
             if (work->keys) g_strfreev(work->keys);
             if (work->values) g_strfreev(work->values);
+            delete work;
             return scope.Close(buffer->handle_);
         }
     }
@@ -220,6 +238,7 @@ namespace node {
         g_free((void *)work->type);
         if (work->keys) g_strfreev(work->keys);
         if (work->values) g_strfreev(work->values);
+        delete work;
     }
 
     void Pixbuf::parseRenderOptions(Local<Value> options, gchar ***keys, gchar ***values, uint32_t *optc) {
@@ -352,43 +371,125 @@ namespace node {
     Handle<Value> Pixbuf::drawGlyph(const Arguments &args) {
         HandleScope scope;
         Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(args.This());
+        struct draw_glyph_work_t *work;
+
+        //if (args.Length() < 4 || !args[0]->IsInt32() || !args[1]->IsInt32() || !args[2]->IsInt32() || !args[3]->IsInt32()) {
+        //    return ThrowException(Exception::Error(String::New("Wrong arguments: (x1: Int32, y1: Int32, x2: Int32, y2: Int32).")));
+        //}
+
+        if (args.Length() < 2 || args.Length() > 3 || !args[0]->IsObject() || !args[1]->IsObject() || (args.Length() == 3 && !args[2]->IsFunction())) {
+            return ThrowException(Exception::Error(String::New("Wrong arguments: ({x1,y1,x2,y2},{r,g,b,a}[,cb]).")));
+        }
+
+        work = new draw_glyph_work_t();
+        work->request.data = work;
+        work->src = self;
+        work->error = NULL;
+
+        Local<Object> coords = args[0]->ToObject();
+        Local<Value> x1 = coords->Get(String::New("x1"));
+        Local<Value> x2 = coords->Get(String::New("x2"));
+        Local<Value> y1 = coords->Get(String::New("y1"));
+        Local<Value> y2 = coords->Get(String::New("y2"));
+        if (!x1->IsInt32() || !x2->IsInt32() || !y1->IsInt32() || !y2->IsInt32()) {
+            return ThrowException(Exception::Error(String::New("Bad rectangle definition: {'x1': Int32, 'y1': Int32, 'x2': Int32, 'y2': Int32}.")));
+        }
+        work->x1 = x1->ToInt32()->Value();
+        work->x2 = x2->ToInt32()->Value();
+        work->y1 = y1->ToInt32()->Value();
+        work->y2 = y2->ToInt32()->Value();
+
+        Local<Object> color = args[1]->ToObject();
+        Local<Value> r = color->Get(String::New("r"));
+        Local<Value> g = color->Get(String::New("g"));
+        Local<Value> b = color->Get(String::New("b"));
+        Local<Value> a = color->Get(String::New("a"));
+        if (!r->IsNumber() || !g->IsNumber() || !b->IsNumber() || !a->IsNumber()) {
+            return ThrowException(Exception::Error(String::New("Bad color definition: {'r': Number, 'g': Number, 'b': Number, 'a': Number}.")));
+        }
+        work->r = r->ToNumber()->Value();
+        work->g = g->ToNumber()->Value();
+        work->b = b->ToNumber()->Value();
+        work->a = a->ToNumber()->Value();
+
+        if (args[args.Length() - 1]->IsFunction()) {
+            work->cb = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length() - 1]->ToObject()));
+            uv_queue_work(uv_default_loop(), &work->request, Pixbuf::_drawGlyph, Pixbuf::afterDrawGlyph);
+        } else {
+            Local<Value> error;
+            Pixbuf::_drawGlyph(&(work->request));
+            if (!work->isOk) {
+                error = Exception::Error(String::New(work->error));
+                g_free((void *) work->error);
+                delete work;
+                return ThrowException(error);
+            }
+            delete work;
+        }
+        return scope.Close(args.This());
+    }
+
+    void Pixbuf::_drawGlyph(uv_work_t* work_req) {
+        draw_glyph_work_t *work = static_cast<draw_glyph_work_t *>(work_req->data);
+        // work->isOk = gdk_pixbuf_save_to_bufferv(work->src->getPixbuf(), &(work->buffer), &(work->buffer_size), work->type, work->keys, work->values, &(work->err));
         int width, height, rowstride, n_channels, x1, y1, x2, y2;
         guchar *pixels, *p;
-        // glyph color rgba
-        double r = 100, g = 255, b = 100, a = 120, nr, ng, nb;
+        double r, g, b, a, nr, ng, nb;
 
-        if (args.Length() < 4 || !args[0]->IsInt32() || !args[1]->IsInt32() || !args[2]->IsInt32() || !args[3]->IsInt32()) {
-            return ThrowException(Exception::Error(String::New("Wrong arguments: (x1: Int32, y1: Int32, x2: Int32, y2: Int32>).")));
-        }
+        r = work->r;
+        g = work->g;
+        b = work->b;
+        a = work->a;
 
-        x1 = args[0]->ToInt32()->Value();
-        y1 = args[1]->ToInt32()->Value();
-        x2 = args[2]->ToInt32()->Value();
-        y2 = args[3]->ToInt32()->Value();
+        x1 = work->x1;
+        x2 = work->x2;
+        y1 = work->y1;
+        y2 = work->y2;
 
-        n_channels = self->getNChannels();
-        width = self->getWidth();
-        height = self->getHeight();
-        rowstride = self->getRowstride();
-        pixels = self->getPixels();
+        n_channels = work->src->getNChannels();
+        width = work->src->getWidth();
+        height = work->src->getHeight();
+        rowstride = work->src->getRowstride();
+        pixels = work->src->getPixels();
 
         if (x1 < 0 || x2 < x1 || y1 < 0 || y2 < y1 || x2 >= width || y2 >= height) {
-            return ThrowException(Exception::RangeError(String::New("Glyph out of image geometry")));
+            work->error = g_strdup("Glyph out of image geometry");
+            work->isOk = false;
+        } else if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 || a < 0 || a > 255) {
+            work->error = g_strdup("Color component value must be in range 0..255 inclusively");
+            work->isOk = false;
+        } else {
+            for (int ty1 = y1, ty2 = y2;ty1 <= ty2; ty1++) {
+                for (int tx1 = x1, tx2 = x2;tx1 <= tx2; tx1++) {
+                    p = pixels + ty1 * rowstride + tx1 * n_channels;
+                    nr = (0xff - a) * ((float)p[0] / 0xff) + a * (r / 0xff);
+                    ng = (0xff - a) * ((float)p[1] / 0xff) + a * (g / 0xff);
+                    nb = (0xff - a) * ((float)p[2] / 0xff) + a * (b / 0xff);
+                    p[0] = (nr > 255) ? 255 : nr;
+                    p[1] = (ng > 255) ? 255 : ng;
+                    p[2] = (nb > 255) ? 255 : nb;
+                }
+            }
+            work->isOk = true;
         }
+    }
 
-        for (int ty1 = y1, ty2 = y2;ty1 <= ty2; ty1++) {
-            for (int tx1 = x1, tx2 = x2;tx1 <= tx2; tx1++) {
-                p = pixels + ty1 * rowstride + tx1 * n_channels;
-                nr = (0xff - a) * ((float)p[0] / 0xff) + a * (r / 0xff);
-                ng = (0xff - a) * ((float)p[1] / 0xff) + a * (g / 0xff);
-                nb = (0xff - a) * ((float)p[2] / 0xff) + a * (b / 0xff);
-                p[0] = (nr > 255) ? 255 : nr;
-                p[1] = (ng > 255) ? 255 : ng;
-                p[2] = (nb > 255) ? 255 : nb;
+    void Pixbuf::afterDrawGlyph(uv_work_t* work_req) {
+        HandleScope scope;
+        draw_glyph_work_t *work = static_cast<draw_glyph_work_t *>(work_req->data);
+        if (work->isOk) {
+            Local<Value> argv[1] = {Local<Value>::New(Null())};
+            work->cb->Call(Context::GetCurrent()->Global(), 1, argv);
+        } else {
+            if (work->error) {
+                Local<Value> argv[1] = {Exception::Error(String::New(work->error))};
+                g_free((void*) work->error);
+                work->cb->Call(Context::GetCurrent()->Global(), 1, argv);
+            } else {
+                Local<Value> argv[1] = {Exception::Error(String::New("Unexpected error"))};
+                work->cb->Call(Context::GetCurrent()->Global(), 1, argv);
             }
         }
-
-        return scope.Close(args.This());
     }
 }
 

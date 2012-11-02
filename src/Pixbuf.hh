@@ -45,6 +45,8 @@ namespace node {
     private:
         static void afterRender(uv_work_t* work_req);
         static void render(uv_work_t* work_req);
+        static void afterDrawGlyph(uv_work_t* work_req);
+        static void _drawGlyph(uv_work_t* work_req);
         static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
         static v8::Handle<v8::Value> getPixel(uint32_t index, const v8::AccessorInfo &info);
