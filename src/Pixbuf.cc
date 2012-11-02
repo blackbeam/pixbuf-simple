@@ -429,8 +429,8 @@ namespace node {
         draw_glyph_work_t *work = static_cast<draw_glyph_work_t *>(work_req->data);
         // work->isOk = gdk_pixbuf_save_to_bufferv(work->src->getPixbuf(), &(work->buffer), &(work->buffer_size), work->type, work->keys, work->values, &(work->err));
         int width, height, rowstride, n_channels, x1, y1, x2, y2;
-        guchar *pixels, *p;
-        double r, g, b, a, nr, ng, nb;
+        guchar *pixels;
+        double r, g, b, a;
 
         r = work->r;
         g = work->g;
@@ -455,6 +455,8 @@ namespace node {
             work->error = g_strdup("Color component value must be in range 0..255 inclusively");
             work->isOk = false;
         } else {
+            double nr, ng, nb;
+            guchar *p;
             for (int ty1 = y1, ty2 = y2;ty1 <= ty2; ty1++) {
                 for (int tx1 = x1, tx2 = x2;tx1 <= tx2; tx1++) {
                     p = pixels + ty1 * rowstride + tx1 * n_channels;
