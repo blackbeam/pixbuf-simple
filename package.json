@@ -2,7 +2,7 @@
   "author": "AnatolyI <ai@rsl.ru>",
   "name": "pixbuf-simple",
   "description": "Simple javascript interface to gdk-pixbuf 2.0",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": "git://github.com/blackbeam/node-pixbuf.git"
