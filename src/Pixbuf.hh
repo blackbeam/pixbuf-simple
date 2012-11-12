@@ -11,7 +11,7 @@ namespace node {
     class Pixbuf : public node::ObjectWrap {
     public:
         ~Pixbuf() {
-            v8::V8::AdjustAmountOfExternalAllocatedMemory(-(this->getLength() * sizeof(GdkPixbuf*)));
+            v8::V8::AdjustAmountOfExternalAllocatedMemory(-(this->getLength() + sizeof(GdkPixbuf*)));
             g_object_unref(pixbuf);
         };
         static void Initialize(v8::Handle<v8::Object> target);
@@ -58,6 +58,11 @@ namespace node {
 
         static void parseRenderOptions(v8::Local<v8::Value> options, gchar*** keys, gchar*** values, uint32_t *optc);
 
+        static inline void freePixels(guchar *pixels, gpointer data) {
+            fprintf(stderr, "freeing\n");
+            g_free(pixels);
+        }
+
         Pixbuf(GdkPixbuf *source) : ObjectWrap() {
             pixbuf = gdk_pixbuf_copy(source);
             long int pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
@@ -75,7 +80,7 @@ namespace node {
                 8,
                 width, height,
                 rowstride,
-                NULL, NULL);
+                freePixels, NULL);
             long int pixbufLength = ( gdk_pixbuf_get_height( pixbuf ) * gdk_pixbuf_get_rowstride( pixbuf ) );
             long int dataSize = sizeof(GdkPixbuf*) + pixbufLength;
             v8::V8::AdjustAmountOfExternalAllocatedMemory(dataSize);

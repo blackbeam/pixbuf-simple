@@ -58,7 +58,8 @@ namespace node {
 
         /* new Pixbuf(pixels: Buffer, has_alpha: bool, width: Integer, height: Integer) */
         if (args.Length() == 4 && Buffer::HasInstance(args[0]) && args[1]->IsBoolean() && args[2]->IsInt32() && args[3]->IsInt32()) {
-            guchar *pixels = (guchar*) Buffer::Data( args[0]->ToObject() );
+            size_t length = Buffer::Length(args[0]->ToObject());
+            guchar *pixels = (guchar*) g_memdup(Buffer::Data(args[0]->ToObject()), length);
             bool has_alpha = args[1]->ToBoolean()->Value();
             int width = args[2]->ToInt32()->Value();
             int height = args[3]->ToInt32()->Value();
@@ -100,6 +101,7 @@ namespace node {
                 gdk_pixbuf_get_has_alpha( tmp ),
                 gdk_pixbuf_get_width( tmp ),
                 gdk_pixbuf_get_height( tmp ) );
+            g_object_unref(tmp);
         } else {
             return ThrowException(Exception::TypeError(String::New("Wrong arguments.")));
         }
