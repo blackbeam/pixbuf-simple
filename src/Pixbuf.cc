@@ -258,8 +258,8 @@ namespace node {
                     if (v8value->IsString()) {
                         String::Utf8Value valuestr(v8value);
                         (*optc) = (*optc) + 1;
-                        (*keys) = (gchar **)realloc((*keys), sizeof(gchar *) * (*optc)+1);
-                        (*values) = (gchar **)realloc((*values), sizeof(gchar *) * (*optc)+1);
+                        (*keys) = (gchar **)realloc((*keys), sizeof(gchar *) * (*optc+1));
+                        (*values) = (gchar **)realloc((*values), sizeof(gchar *) * (*optc+1));
                         (*keys)[(*optc)-1] = g_strdup(*keystr);
                         (*values)[(*optc)-1] = g_strdup(*valuestr);
                         (*keys)[(*optc)] = (*values)[(*optc)] = NULL;
