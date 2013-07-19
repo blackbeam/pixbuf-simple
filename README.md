@@ -14,7 +14,7 @@ npm install pixbuf-simple
 var p = require('pixbuf-simple');
 
 // Get list of supported formats
-p.getFormats();
+p.formats;
 
 // New pixbuf
 var pb = new Pixbuf(/*has alpha*/ false, /*width*/ 2, /*height*/ 2);
