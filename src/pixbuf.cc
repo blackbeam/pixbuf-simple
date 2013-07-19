@@ -16,6 +16,7 @@ static Persistent<String> red_sym;
 static Persistent<String> green_sym;
 static Persistent<String> blue_sym;
 static Persistent<String> alpha_sym;
+static Persistent<v8::Object> supproted_formats;
 
 struct render_work_t
 {
@@ -116,11 +117,59 @@ namespace node {
         green_sym = Persistent<String>::New(String::NewSymbol("g"));
         blue_sym = Persistent<String>::New(String::NewSymbol("b"));
         alpha_sym = Persistent<String>::New(String::NewSymbol("a"));
+        supproted_formats = Persistent<v8::Object>::New(v8::Object::New());
+
+        GSList *formats = gdk_pixbuf_get_formats();
+        if (formats) {
+            GSList *current = formats;
+            while (current) {
+                GdkPixbufFormat *f = reinterpret_cast<GdkPixbufFormat*>(current->data);
+                gchar **mime_types = gdk_pixbuf_format_get_mime_types(f);
+                gchar **extensions = gdk_pixbuf_format_get_extensions(f);
+
+                Persistent<v8::Object> vf = Persistent<v8::Object>::New(v8::Object::New());
+                Persistent<v8::Array> vmime_types = Persistent<v8::Array>::New(v8::Array::New());
+                Persistent<v8::Array> vextensions = Persistent<v8::Array>::New(v8::Array::New());
+
+                if (mime_types) {
+                    gchar **mtp = mime_types;
+                    int i = 0;
+                    while (*mtp) {
+                        vmime_types->Set(i, String::NewSymbol(*mtp));
+                        ++i;
+                        ++mtp;
+                    }
+                    g_strfreev(mime_types);
+                }
+
+                if (extensions) {
+                    gchar **extp = extensions;
+                    int i = 0;
+                    while (*extp) {
+                        vextensions->Set(i, String::NewSymbol(*extp));
+                        ++i;
+                        ++extp;
+                    }
+                    g_strfreev(extensions);
+                }
+
+                vf->Set(String::NewSymbol("name"), String::NewSymbol(gdk_pixbuf_format_get_name(f)));
+                vf->Set(String::NewSymbol("description"), String::NewSymbol(gdk_pixbuf_format_get_description(f)));
+                vf->Set(String::NewSymbol("disabled"), v8::Boolean::New(gdk_pixbuf_format_is_disabled(f)));
+                vf->Set(String::NewSymbol("mime_types"), vmime_types);
+                vf->Set(String::NewSymbol("extensions"), vextensions);
+                supproted_formats->Set(String::NewSymbol(gdk_pixbuf_format_get_name(f)), vf);
+                current = g_slist_next(current);
+            }
+            g_slist_free(formats);
+        }
 
         Local<FunctionTemplate> t = FunctionTemplate::New(Pixbuf::New);
         constructor_template = Persistent<FunctionTemplate>::New(t);
         constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
         constructor_template->SetClassName(String::NewSymbol("Pixbuf"));
+
+        constructor_template->Set(String::NewSymbol("formats"), supproted_formats);
 
         constructor_template->InstanceTemplate()->SetIndexedPropertyHandler(
             Pixbuf::getPixel, Pixbuf::setPixel, 0, Pixbuf::checkPixel, Pixbuf::enumeratePixel);
