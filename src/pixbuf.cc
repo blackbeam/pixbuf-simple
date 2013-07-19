@@ -1,4 +1,4 @@
-#include "Pixbuf.hh"
+#include "pixbuf.hh"
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
@@ -6,7 +6,6 @@
 #include <node.h>
 #include <node_object_wrap.h>
 
-#include <cstring> /* memcpy */
 #include <cstdlib>
 
 using namespace node;
@@ -199,7 +198,7 @@ namespace node {
             uv_queue_work(uv_default_loop(), &work->request, Pixbuf::render, Pixbuf::afterRender);
             return scope.Close(args.This());
         } else {
-            Buffer *buffer;
+            Buffer *buffer = NULL;
             Local<Value> error;
             Pixbuf::render(&(work->request));
             if (work->isOk) {
@@ -223,7 +222,7 @@ namespace node {
         work->isOk = gdk_pixbuf_save_to_bufferv(work->src->getPixbuf(), &(work->buffer), &(work->buffer_size), work->type, work->keys, work->values, &(work->err));
     }
 
-    void Pixbuf::afterRender(uv_work_t* work_req) {
+    void Pixbuf::afterRender(uv_work_t* work_req, int status) {
         HandleScope scope;
         render_work_t *work = static_cast<render_work_t *>(work_req->data);
         if (work->isOk) {
@@ -249,7 +248,7 @@ namespace node {
         *optc = 0;
         if (!options.IsEmpty() && !options->IsNull() && !options->IsUndefined()) {
             Local<Array> v8keys = options->ToObject()->GetPropertyNames();
-            uint32_t len = v8keys->Length();
+            int len = v8keys->Length();
             if (len != 0) {
                 for (int i = 0; i < len; i++) {
                     Local<String> v8key = Local<String>::Cast(v8keys->Get(i));
@@ -303,18 +302,18 @@ namespace node {
         return scope.Close(a);
     }
 
-    Handle<Boolean> Pixbuf::checkPixel(uint32_t index, const AccessorInfo &info) {
+    Handle<Boolean> Pixbuf::checkPixel(unsigned int index, const AccessorInfo &info) {
         Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(info.This());
         HandleScope scope;
 
-        return scope.Close(Boolean::New(index < self->getWidth() * self->getHeight() - 1));
+        return scope.Close(Boolean::New(((int) index) < self->getWidth() * self->getHeight() - 1));
     }
 
-    Handle<Value> Pixbuf::getPixel(uint32_t index, const AccessorInfo &info) {
+    Handle<Value> Pixbuf::getPixel(unsigned int index, const AccessorInfo &info) {
         Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(info.This());
         HandleScope scope;
 
-        if (index > self->getWidth() * self->getHeight() - 1)
+        if (((int) index) > self->getWidth() * self->getHeight() - 1)
             return Handle<Value>();
 
         Local<v8::Object> p = v8::Object::New();
@@ -333,13 +332,13 @@ namespace node {
         return scope.Close(p);
     }
 
-    Handle<Value> Pixbuf::setPixel(uint32_t index, Local<Value> value, const AccessorInfo &info) {
+    Handle<Value> Pixbuf::setPixel(unsigned int index, Local<Value> value, const AccessorInfo &info) {
         Pixbuf *self = ObjectWrap::Unwrap<Pixbuf>(info.This());
         HandleScope scope;
         guchar* pix;
         Local<Object> p;
 
-        if (index > self->getWidth() * self->getHeight() - 1)
+        if (((int) index) > self->getWidth() * self->getHeight() - 1)
             return Handle<Value>();
         if (!value->IsObject()) {
             goto error;
@@ -474,7 +473,7 @@ namespace node {
         }
     }
 
-    void Pixbuf::afterDrawGlyph(uv_work_t* work_req) {
+    void Pixbuf::afterDrawGlyph(uv_work_t* work_req, int status) {
         HandleScope scope;
         draw_glyph_work_t *work = static_cast<draw_glyph_work_t *>(work_req->data);
         if (work->isOk) {
@@ -499,8 +498,12 @@ init (v8::Handle<v8::Object> target)
 {
     HandleScope scope;
 
+#if ((GLIB_MAJOR_VERSION == 2) && (GLIB_MINOR_VERSION < 36)) || (GLIB_MAJOR_VERSION < 2)
     //Required for gdk
     g_type_init();
+#endif
 
     Pixbuf::Initialize(target);
 }
+
+NODE_MODULE(pixbuf, init);

@@ -6,6 +6,7 @@
 #include <node_object_wrap.h>
 #include <v8.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <cstring> /* memcpy */
 
 namespace node {
     class Pixbuf : public node::ObjectWrap {
@@ -43,15 +44,15 @@ namespace node {
         }
 
     private:
-        static void afterRender(uv_work_t* work_req);
+        static void afterRender(uv_work_t* work_req, int status);
         static void render(uv_work_t* work_req);
-        static void afterDrawGlyph(uv_work_t* work_req);
+        static void afterDrawGlyph(uv_work_t* work_req, int status);
         static void _drawGlyph(uv_work_t* work_req);
         static v8::Persistent<v8::FunctionTemplate> constructor_template;
 
-        static v8::Handle<v8::Value> getPixel(uint32_t index, const v8::AccessorInfo &info);
-        static v8::Handle<v8::Value> setPixel(uint32_t index, v8::Local<v8::Value> value, const v8::AccessorInfo &info);
-        static v8::Handle<v8::Boolean> checkPixel(uint32_t index, const v8::AccessorInfo &info);
+        static v8::Handle<v8::Value> getPixel(unsigned int index, const v8::AccessorInfo &info);
+        static v8::Handle<v8::Value> setPixel(unsigned int index, v8::Local<v8::Value> value, const v8::AccessorInfo &info);
+        static v8::Handle<v8::Boolean> checkPixel(unsigned int index, const v8::AccessorInfo &info);
         static v8::Handle<v8::Array> enumeratePixel(const v8::AccessorInfo &info);
 
         static v8::Handle<v8::Value> paramsGetter(v8::Local<v8::String> property, const v8::AccessorInfo &info);
@@ -59,7 +60,6 @@ namespace node {
         static void parseRenderOptions(v8::Local<v8::Value> options, gchar*** keys, gchar*** values, uint32_t *optc);
 
         static inline void freePixels(guchar *pixels, gpointer data) {
-            fprintf(stderr, "freeing\n");
             g_free(pixels);
         }
 
@@ -73,8 +73,10 @@ namespace node {
         Pixbuf(guchar * pixels, bool has_alpha, int width, int height) : ObjectWrap() {
             int rowstride = has_alpha ? width * 4 : width * 3;
             rowstride = (rowstride + 3) & ~3;
+            guchar* pixdata = (guchar*) g_malloc(height * rowstride);
+            memcpy(pixdata, pixels, height * rowstride);
             pixbuf = gdk_pixbuf_new_from_data(
-                pixels,
+                pixdata,
                 GDK_COLORSPACE_RGB,
                 has_alpha,
                 8,

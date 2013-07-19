@@ -8,7 +8,10 @@
     "url": "git://github.com/blackbeam/node-pixbuf.git"
   },
   "scripts": {
-    "preinstall": "node-waf -v configure build"
+    "install": "(node-gyp rebuild) || (exit 0)",
+    "preinstall": "(node-gyp configure) || (exit 0)",
+    "clean": "((node-gyp clean) && (rm -rf node_modules)) || (exit 0)",
+    "install-debug": "(node-gyp configure --debug && node-gyp rebuild --debug) || (exit 0)"
   },
   "main": "./lib/pixbuf-simple.js",
   "dependencies": {},
@@ -17,7 +20,7 @@
   },
   "optionalDependencies": {},
   "engines": {
-    "node": "*"
+    "node": ">=0.8.0 <0.12.0"
   },
   "keywords": ["pixbuf"]
 }
